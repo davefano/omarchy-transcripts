@@ -4,6 +4,11 @@ A native Omarchy bar plugin for local speech-to-text history. Search across tool
 open the full text, copy it, pause collection, and move entries to recoverable Trash.
 Supports the Quickshell-based Omarchy shell (not older Waybar-based versions).
 
+Hover over a transcript to copy it directly from the history list or open its
+full text using the icons at the top right of the entry. The same actions appear
+when navigating the list with the keyboard; use Tab to focus an icon and Enter
+or Space to activate it. Copy keeps you in the list.
+
 ## Install
 
 Requires Omarchy's plugin-capable shell, Python 3.11+, and `wl-clipboard`.

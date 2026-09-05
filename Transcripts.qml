@@ -221,21 +221,36 @@ Panel {
                     ScrollBar.vertical: ScrollBar {}
                     Keys.onReturnPressed: if (currentItem) root.selected = root.entries[currentIndex]
                     Keys.onEnterPressed: if (currentItem) root.selected = root.entries[currentIndex]
+                    Keys.onTabPressed: function(event) {
+                        if (currentItem) currentItem.focusActions()
+                        else event.accepted = false
+                    }
                     delegate: Rectangle {
+                        id: entryRow
                         required property var modelData
                         required property int index
+                        readonly property bool actionsActive: rowHover.hovered
+                            || (history.activeFocus && history.currentIndex === index)
+                            || copyButton.activeFocus || openButton.activeFocus
+                        function focusActions() {
+                            if (copyButton.enabled) copyButton.forceActiveFocus()
+                            else openButton.forceActiveFocus()
+                        }
                         width: history.width
                         height: entryColumn.implicitHeight + Style.space(24)
                         radius: Style.cornerRadius
-                        color: rowMouse.containsMouse || (history.activeFocus && history.currentIndex === index)
+                        color: actionsActive
                             ? Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.10)
                             : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.04)
+                        HoverHandler { id: rowHover; cursorShape: Qt.PointingHandCursor }
                         Column {
                             id: entryColumn
                             anchors { left: parent.left; right: parent.right; top: parent.top; margins: Style.space(12) }
                             spacing: Style.space(6)
                             Text {
-                                width: parent.width
+                                width: parent.width - rowActions.width - Style.space(6)
+                                height: Math.max(implicitHeight, rowActions.height)
+                                verticalAlignment: Text.AlignVCenter
                                 text: modelData.source + " · " + root.stamp(modelData.created_at)
                                 textFormat: Text.PlainText
                                 color: root.muted
@@ -256,11 +271,41 @@ Panel {
                             }
                         }
                         MouseArea {
-                            id: rowMouse
                             anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
                             onClicked: root.selected = modelData
+                        }
+                        Row {
+                            id: rowActions
+                            anchors { top: parent.top; right: parent.right; margins: Style.space(12) }
+                            spacing: Style.space(4)
+                            width: copyButton.size + spacing + openButton.size
+                            height: Math.max(copyButton.size, openButton.size)
+                            visible: entryRow.actionsActive
+                            PanelActionButton {
+                                id: copyButton
+                                iconText: "\uf0c5"
+                                tooltipText: "Copy transcript"
+                                size: Style.space(22)
+                                focusable: true
+                                enabled: !writer.running
+                                Accessible.role: Accessible.Button
+                                Accessible.name: tooltipText
+                                KeyNavigation.tab: openButton
+                                KeyNavigation.backtab: history
+                                onClicked: root.action("copy", entryRow.modelData.id)
+                            }
+                            PanelActionButton {
+                                id: openButton
+                                iconText: "\uf08e"
+                                tooltipText: "Open full transcript"
+                                size: Style.space(22)
+                                focusable: true
+                                Accessible.role: Accessible.Button
+                                Accessible.name: tooltipText
+                                KeyNavigation.tab: search
+                                KeyNavigation.backtab: copyButton
+                                onClicked: root.selected = entryRow.modelData
+                            }
                         }
                     }
                 }
