@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "local.transcripts",
+  "name": "Transcripts",
+  "version": "0.1.0",
+  "author": "David Fano",
+  "license": "MIT",
+  "description": "Local, searchable dictation history shared across speech-to-text tools.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {"barWidget": "Transcripts.qml"},
+  "barWidget": {
+    "displayName": "Transcripts",
+    "description": "Search, read, and copy saved dictations.",
+    "category": "Utilities",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
