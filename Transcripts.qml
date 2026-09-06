@@ -14,6 +14,7 @@ Panel {
     property var entries: []
     property var selected: null
     property int total: 0
+    property bool hasMore: false
     property int offset: 0
     property bool paused: false
     property bool showTrash: false
@@ -23,6 +24,9 @@ Panel {
     property string requestQuery: ""
     property int requestOffset: 0
     property bool requestTrash: false
+    property var deferredResult: null
+    readonly property bool interacting: listArea.visible
+        && (listHover.hovered || listArea.activeFocus || history.moving || writer.running)
     readonly property color fg: Color.foreground
     readonly property color muted: Qt.rgba(fg.r, fg.g, fg.b, 0.6)
 
@@ -34,10 +38,45 @@ Panel {
         requestQuery = query
         requestOffset = offset
         requestTrash = showTrash
-        reader.command = ["python3", helper, "list", "--query", query, "--offset", String(offset)]
+        reader.command = ["python3", helper, "list", "--page-only", "--query=" + query, "--offset", String(offset)]
             .concat(showTrash ? ["--trash"] : [])
         reader.running = true
     }
+
+    function applyResult(result) {
+        var currentId = history.currentItem ? history.currentItem.modelData.id : -1
+        if (JSON.stringify(entries) !== JSON.stringify(result.entries)) {
+            entries = result.entries
+            history.currentIndex = entries.findIndex(function(entry) { return entry.id === currentId })
+        }
+        total = result.total === null ? -1 : result.total
+        hasMore = result.has_more
+        offset = result.offset
+        paused = result.paused
+    }
+
+    function applyDeferredResult() {
+        if (interacting || !deferredResult) return
+        var saved = deferredResult
+        deferredResult = null
+        if (opened && saved.query === query && saved.offset === offset && saved.trash === showTrash)
+            applyResult(saved.result)
+    }
+
+    function receiveResult(result) {
+        if (!opened || requestQuery !== query || requestOffset !== offset || requestTrash !== showTrash) return
+        // Also defer requests that finished after interaction began.
+        if (interacting) {
+            deferredResult = { result: result, query: requestQuery,
+                offset: requestOffset, trash: requestTrash }
+            paused = result.paused
+        } else {
+            deferredResult = null
+            applyResult(result)
+        }
+    }
+
+    onInteractingChanged: if (!interacting) Qt.callLater(applyDeferredResult)
 
     function action(command, id) {
         if (writer.running) return
@@ -57,11 +96,12 @@ Panel {
             refresh()
         } else {
             selected = null
+            deferredResult = null
             entries = []
         }
     }
-    onQueryChanged: { offset = 0; debounce.restart() }
-    onShowTrashChanged: { offset = 0; selected = null; refresh() }
+    onQueryChanged: { deferredResult = null; offset = 0; debounce.restart() }
+    onShowTrashChanged: { deferredResult = null; offset = 0; selected = null; refresh() }
     onSelectedChanged: Qt.callLater(function() {
         if (!root.opened) return
         if (root.selected) backButton.forceActiveFocus()
@@ -69,20 +109,15 @@ Panel {
     })
 
     Timer { id: debounce; interval: 180; onTriggered: root.refresh() }
-    Timer { interval: 2000; repeat: true; running: root.opened; onTriggered: root.refresh() }
+    Timer { interval: 2000; repeat: true; running: root.opened && !root.interacting; onTriggered: root.refresh() }
 
     Process {
         id: reader
         stdout: StdioCollector {
             waitForEnd: true
             onStreamFinished: {
-                if (!root.opened || root.requestQuery !== root.query || root.requestOffset !== root.offset || root.requestTrash !== root.showTrash) return
                 try {
-                    var result = JSON.parse(text)
-                    // Keep the list stable while reading or navigating it.
-                    if (JSON.stringify(root.entries) !== JSON.stringify(result.entries)) root.entries = result.entries
-                    root.total = result.total
-                    root.paused = result.paused
+                    root.receiveResult(JSON.parse(text))
                 } catch (e) { root.notice = "Could not read history." }
             }
         }
@@ -95,6 +130,7 @@ Panel {
 
     Process {
         id: writer
+        objectName: "transcriptWriter"
         property string actionName: ""
         stdout: StdioCollector {}
         stderr: StdioCollector {}
@@ -173,6 +209,7 @@ Panel {
 
             TextField {
                 id: search
+                objectName: "transcriptSearch"
                 Layout.fillWidth: true
                 visible: !root.selected
                 placeholderText: "Search transcripts or tools…"
@@ -206,13 +243,16 @@ Panel {
                 }
             }
 
-            Item {
+            FocusScope {
+                id: listArea
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 visible: !root.selected
+                HoverHandler { id: listHover }
 
                 ListView {
                     id: history
+                    objectName: "transcriptHistory"
                     anchors.fill: parent
                     clip: true
                     spacing: Style.space(7)
@@ -283,6 +323,7 @@ Panel {
                             visible: entryRow.actionsActive
                             PanelActionButton {
                                 id: copyButton
+                                objectName: "copyTranscript"
                                 iconText: "\uf0c5"
                                 tooltipText: "Copy transcript"
                                 size: Style.space(22)
@@ -383,14 +424,15 @@ Panel {
                 Text {
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
-                    text: root.total === 0 ? "0 transcripts" : (root.offset + 1) + "–" + Math.min(root.offset + 50, root.total) + " of " + root.total
+                    text: root.total === 0 ? "0 transcripts" : (root.offset + 1) + "–" + (root.offset + root.entries.length)
+                        + (root.total >= 0 ? " of " + root.total : "")
                     color: root.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.caption
                 }
                 ActionButton {
                     label: "→"
-                    enabled: root.offset + 50 < root.total
+                    enabled: root.hasMore
                     onChosen: { root.offset += 50; root.refresh(); history.positionViewAtBeginning() }
                 }
             }

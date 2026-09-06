@@ -27,6 +27,9 @@ Hover over a transcript to copy it directly from the history list or open its
 full text using the icons at the top right of the entry. The same actions appear
 when navigating the list with the keyboard; use Tab to focus an icon and Enter
 or Space to activate it. Copy keeps you in the list.
+Incoming entries wait while you hover over or navigate the list, so rows do not
+move beneath the copy action. Move the pointer and keyboard focus outside the list
+to resume updates.
 
 ## Install
 
@@ -116,6 +119,13 @@ omarchy-transcripts resume
 List returns JSON with pagination (`--limit 50 --offset 50`). Search is literal,
 with ASCII case-insensitive matching; non-ASCII text matches exactly. SQL syntax
 and shell metacharacters in transcripts are treated as ordinary data.
+For searches starting with a dash, use `--query=--help` (an attached value).
+
+The panel uses `list --page-only`, which fetches one extra row to report `has_more`
+without counting the full history on every refresh. In this mode, `total` is
+`null` until the last page; the panel shows the visible range and enables Next
+when more entries exist. Ordinary `list` still returns an exact total. If entries
+are removed from the last page, `offset` moves back to the last available page.
 
 ## Disable / undo
 
@@ -129,6 +139,7 @@ panel disabled: the collector and viewer are independent.
 ```bash
 python3 -m unittest -v test_transcripts.py
 omarchy plugin validate .
+bash test_panel.sh
 bash install.sh
 ```
 
@@ -136,6 +147,9 @@ Tests use temporary storage and never read or alter your real history. To manual
 test with an isolated store, set `OMARCHY_TRANSCRIPTS_DIR` for the CLI process.
 The installed plugin and this source directory are separate; rerun the installer
 after editing the source.
+The panel tests require an active Omarchy graphical session and Qt's QML Test
+module. They open a separate panel, exercise mouse and keyboard interactions,
+and use a fake clipboard command so your clipboard remains untouched.
 
 ## Project status and contributions
 

@@ -40,15 +40,18 @@ def is_paused(db):
 
 
 def save(db, text, source):
-    if not text.strip() or is_paused(db):
+    if not text.strip():
         return None
     now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     with db:
         cursor = db.execute(
-            "INSERT INTO transcripts(created_at, source, text) VALUES (?, ?, ?)",
+            """INSERT INTO transcripts(created_at, source, text)
+               SELECT ?, ?, ? WHERE NOT EXISTS (
+                   SELECT 1 FROM settings WHERE key = 'paused' AND value = 'true'
+               )""",
             (now, source, text),
         )
-    return cursor.lastrowid
+    return cursor.lastrowid if cursor.rowcount else None
 
 
 def ingest(args):
@@ -71,15 +74,32 @@ def ingest(args):
 
 
 def snapshot(db, args):
-    where = "trashed = ? AND (instr(lower(text), lower(?)) > 0 OR instr(lower(source), lower(?)) > 0)"
-    params = (int(args.trash), args.query, args.query)
-    rows = db.execute(
-        "SELECT * FROM transcripts WHERE " + where + " ORDER BY id DESC LIMIT ? OFFSET ?",
-        (*params, args.limit, args.offset),
-    ).fetchall()
-    total = db.execute("SELECT count(*) FROM transcripts WHERE " + where, params).fetchone()[0]
-    return {"entries": [dict(row) for row in rows], "total": total,
-            "paused": is_paused(db), "offset": args.offset}
+    where = "trashed = ?"
+    params = (int(args.trash),)
+    if args.query:
+        where += " AND (instr(lower(text), lower(?)) > 0 OR instr(lower(source), lower(?)) > 0)"
+        params += (args.query, args.query)
+    offset = args.offset
+    # Keep the page, count, and paused state consistent during concurrent writes.
+    with db:
+        db.execute("BEGIN")
+        total = None
+        if not args.page_only:
+            total = db.execute("SELECT count(*) FROM transcripts WHERE " + where, params).fetchone()[0]
+            if offset >= total:
+                offset = max(0, (total - 1) // args.limit * args.limit)
+        sql = "SELECT * FROM transcripts WHERE " + where + " ORDER BY id DESC LIMIT ? OFFSET ?"
+        rows = db.execute(sql, (*params, args.limit + 1, offset)).fetchall()
+        if not rows and offset:
+            # A last-page entry may have been trashed since the previous request.
+            total = db.execute("SELECT count(*) FROM transcripts WHERE " + where, params).fetchone()[0]
+            offset = max(0, (total - 1) // args.limit * args.limit)
+            rows = db.execute(sql, (*params, args.limit + 1, offset)).fetchall()
+        has_more = len(rows) > args.limit
+        if not has_more:
+            total = offset + len(rows)
+        return {"entries": [dict(row) for row in rows[:args.limit]], "total": total,
+                "has_more": has_more, "paused": is_paused(db), "offset": offset}
 
 
 def main():
@@ -94,6 +114,8 @@ def main():
     listing.add_argument("--limit", type=int, default=50)
     listing.add_argument("--offset", type=int, default=0)
     listing.add_argument("--trash", action="store_true")
+    listing.add_argument("--page-only", action="store_true",
+                         help="Skip full counts; total is null until the last page")
     for name in ("get", "copy", "trash", "restore"):
         item = commands.add_parser(name)
         item.add_argument("id", type=int)

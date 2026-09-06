@@ -65,6 +65,8 @@ hooks need equivalent integration. The installer does not configure speech tools
 - `test_transcripts.py`: Tests ingestion, exact passthrough, storage failure,
   pause, Trash/restore/export, concurrent producers, pagination, permissions,
   and literal text handling.
+- `test_panel.sh` / `test_panel.qml`: Isolated Quickshell interaction tests with
+  disposable history and a fake clipboard command.
 - `README.md`: Installation, tool integration, usage, privacy, and removal guidance.
 
 The runtime targets Omarchy's plugin-capable Quickshell shell, with Python 3.11+
@@ -123,6 +125,8 @@ omarchy plugin validate .
 Use temporary storage via `OMARCHY_TRANSCRIPTS_DIR` for manual CLI checks. Never
 use the user's real transcript database as test data. UI changes also need a
 manual panel check; CLI tests do not verify QML behavior.
+Run `bash test_panel.sh` in an active graphical session for mouse, keyboard,
+late refresh, literal search, and last-page regression coverage.
 
 When installation is part of the requested work, run `bash install.sh`. This
 updates the user's live plugin and bar. The installed copy lives at
