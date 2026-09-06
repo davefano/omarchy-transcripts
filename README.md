@@ -1,8 +1,27 @@
 # Transcripts for Omarchy
 
-A native Omarchy bar plugin for local speech-to-text history. Search across tools,
-open the full text, copy it, pause collection, and move entries to recoverable Trash.
-Supports the Quickshell-based Omarchy shell (not older Waybar-based versions).
+Keep your dictated words in one place. Transcripts is a native Omarchy bar plugin
+that saves a local, searchable history from connected speech-to-text tools, so you
+can find and copy something you said even after it has left your dictation tool.
+
+VoxType is the first documented integration. Other tools can feed the same history
+through an output hook, command pipeline, or adapter. Connecting a tool is a
+separate step after installation; the plugin does not automatically detect all
+dictation on your system.
+
+This is an early personal project, shared publicly for others to use and adapt.
+**Pull requests and outside contributions are not being accepted at this time.**
+See [Contributing](https://github.com/davefano/omarchy-transcripts/blob/main/CONTRIBUTING.md)
+for the current policy.
+
+## Features
+
+- Search transcript text and tool names in one history.
+- Copy directly from a transcript row, or open the full text.
+- Pause and resume collection without interrupting dictation.
+- Move entries to recoverable Trash and restore them later.
+- Export saved history as JSON.
+- Save clipboard text manually when a tool has no integration.
 
 Hover over a transcript to copy it directly from the history list or open its
 full text using the icons at the top right of the entry. The same actions appear
@@ -11,9 +30,18 @@ or Space to activate it. Copy keeps you in the list.
 
 ## Install
 
-Requires Omarchy's plugin-capable shell, Python 3.11+, and `wl-clipboard`.
-From this directory, run `bash install.sh`. The plugin appears before the audio
-icon in the right side of the bar. No root access or background daemon is needed.
+Requires Omarchy's plugin-capable Quickshell shell, Python 3.11+, `wl-clipboard`,
+and Git to clone the repository. Older Waybar-based Omarchy versions are not
+supported.
+
+```bash
+git clone https://github.com/davefano/omarchy-transcripts.git
+cd omarchy-transcripts
+bash install.sh
+```
+
+The plugin appears before the audio icon in the right side of the bar. No root
+access or background daemon is needed.
 
 Installed plugin: `~/.config/omarchy/plugins/local.transcripts/`.
 Command: `~/.local/bin/omarchy-transcripts`.
@@ -108,3 +136,15 @@ Tests use temporary storage and never read or alter your real history. To manual
 test with an isolated store, set `OMARCHY_TRANSCRIPTS_DIR` for the CLI process.
 The installed plugin and this source directory are separate; rerun the installer
 after editing the source.
+
+## Project status and contributions
+
+Maintained by [David Fano](https://github.com/davefano) as a personal project.
+There is no promised support or release schedule. You are welcome to use the
+project and maintain your own fork under its license, but please do not submit
+pull requests or patches to this repository. See
+[CONTRIBUTING.md](https://github.com/davefano/omarchy-transcripts/blob/main/CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE). Copyright (c) 2026 David Fano.
