@@ -128,7 +128,7 @@ def main():
     if args.command == "ingest":
         return ingest(args)
     if args.command == "open":
-        return subprocess.call(["omarchy-shell", "shell", "summon", "local.transcripts"])
+        return subprocess.call(["omarchy-shell", "shell", "summon", "io.github.davefano.transcripts"])
     try:
         with connect() as db:
             if args.command == "list":

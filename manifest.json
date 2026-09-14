@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "local.transcripts",
+  "id": "io.github.davefano.transcripts",
   "name": "Transcripts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "David Fano",
   "license": "MIT",
   "description": "Local, searchable dictation history shared across speech-to-text tools.",
