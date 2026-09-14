@@ -14,6 +14,8 @@ This is an early personal project, shared publicly for others to use and adapt.
 See [Contributing](https://github.com/davefano/omarchy-transcripts/blob/main/CONTRIBUTING.md)
 for the current policy.
 
+![Transcripts panel showing fictional sample dictations](preview.png)
+
 ## Features
 
 - Search transcript text and tool names in one history.
@@ -38,18 +40,55 @@ and Git to clone the repository. Older Waybar-based Omarchy versions are not
 supported.
 
 ```bash
-git clone https://github.com/davefano/omarchy-transcripts.git
-cd omarchy-transcripts
-bash install.sh
+omarchy plugin add https://github.com/davefano/omarchy-transcripts.git --enable
+bash ~/.config/omarchy/plugins/io.github.davefano.transcripts/install.sh --cli-only
 ```
 
-The plugin appears before the audio icon in the right side of the bar. No root
-access or background daemon is needed.
+The first command installs and enables the panel. The second creates
+`~/.local/bin/omarchy-transcripts`, a symlink to the installed Python collector.
+**This manual setup step is required for the command examples and dictation hooks
+below:** Omarchy's plugin installer does not execute `install.sh` automatically.
+The panel itself can display history and save clipboard text without the launcher.
 
-Installed plugin: `~/.config/omarchy/plugins/local.transcripts/`.
+No root access or background daemon is needed. The setup script refuses to replace
+an unrelated command. It does not install dependencies or change your speech tool's
+configuration. Python 3.11+, `wl-copy`, and `wl-paste` must already be available.
+Collection starts only after you connect a speech tool below.
+
+Installed plugin: `~/.config/omarchy/plugins/io.github.davefano.transcripts/`.
 Command: `~/.local/bin/omarchy-transcripts`.
 Open from a terminal with `omarchy-transcripts open`.
-The installer does not change your speech tool's configuration.
+
+### Update
+
+```bash
+omarchy plugin update io.github.davefano.transcripts
+```
+
+The launcher follows the installed collector, so it does not need recreating
+after an update. Source-based installations made with `bash install.sh` are copies,
+not Git checkouts; update those by rerunning the installer from your source repo.
+
+### Upgrade from `local.transcripts`
+
+Install the new plugin, then explicitly migrate the collector launcher and disable
+the old bar entry:
+
+```bash
+omarchy plugin add https://github.com/davefano/omarchy-transcripts.git --enable
+bash ~/.config/omarchy/plugins/io.github.davefano.transcripts/install.sh --cli-only --migrate
+```
+
+The database stays at `~/.local/share/omarchy-transcripts/history.sqlite3`.
+Existing hooks using `~/.local/bin/omarchy-transcripts` keep working. Hooks pointing
+directly into the old plugin folder must be updated to the launcher path.
+The migration preserves the old plugin files. Once you have checked the new panel
+and dictation capture, remove the old plugin with `omarchy plugin remove local.transcripts`.
+
+If you previously copied this plugin manually using its new ID, `plugin add` will
+refuse the duplicate. Disconnect the hook first, remove the existing plugin through
+`omarchy plugin remove io.github.davefano.transcripts`, then use the installation
+commands above and reconnect the hook. Saved history is preserved.
 
 ## Connect VoxType
 
@@ -127,26 +166,52 @@ without counting the full history on every refresh. In this mode, `total` is
 when more entries exist. Ordinary `list` still returns an exact total. If entries
 are removed from the last page, `offset` moves back to the last available page.
 
-## Disable / undo
+## Disable or remove
 
-First remove the collector from your dictation tool's hook, then restart that tool.
-Run `omarchy plugin disable local.transcripts` to remove the bar entry. Saved data
-is preserved. If you keep the hook connected, collection continues even with the
-panel disabled: the collector and viewer are independent.
+To stop collection, remove the collector from each dictation tool's hook and restart
+that tool when it is idle. Preserve any other post-processors. Disabling the panel
+alone does not stop hooks from collecting text.
+
+To hide just the panel:
+
+```bash
+omarchy plugin disable io.github.davefano.transcripts
+```
+
+To uninstall, disconnect the hooks first, then remove the panel and its launcher:
+
+```bash
+omarchy plugin remove io.github.davefano.transcripts
+# Remove only the symlink owned by this plugin, even if its target is now absent.
+if [ "$(readlink -- "$HOME/.local/bin/omarchy-transcripts")" = "$HOME/.config/omarchy/plugins/io.github.davefano.transcripts/transcripts.py" ]; then
+  unlink "$HOME/.local/bin/omarchy-transcripts"
+fi
+```
+
+For a source installation using a custom `XDG_CONFIG_HOME`, substitute that config
+path in the launcher check. Omarchy's standard plugin commands use `~/.config`.
+If you migrated from `local.transcripts`, remove that disabled plugin too.
+
+Uninstalling preserves saved history. To retain a portable copy, run
+`omarchy-transcripts export > transcripts.json` before removing the launcher.
+History can contain sensitive text; choose a private location for exports.
 
 ## Development
 
 ```bash
-python3 -m unittest -v test_transcripts.py
+python3 -m unittest -v test_transcripts.py test_install.py
 omarchy plugin validate .
 bash test_panel.sh
-bash install.sh
+bash install.sh  # use --migrate if the legacy plugin is still installed
 ```
 
 Tests use temporary storage and never read or alter your real history. To manually
 test with an isolated store, set `OMARCHY_TRANSCRIPTS_DIR` for the CLI process.
-The installed plugin and this source directory are separate; rerun the installer
-after editing the source.
+The installed plugin and this source directory are separate. The installer copies
+source files and enables the widget before the audio icon. For an existing Git-managed
+installation, it refuses to overwrite the checkout from another source directory;
+update that checkout instead. `--cli-only` creates the launcher without changing
+bar placement. Installer tests use a temporary home and stub Omarchy IPC commands.
 The panel tests require an active Omarchy graphical session and Qt's QML Test
 module. They open a separate panel, exercise mouse and keyboard interactions,
 and use a fake clipboard command so your clipboard remains untouched.

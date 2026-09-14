@@ -8,8 +8,8 @@ import qs.Ui
 
 Panel {
     id: root
-    moduleName: "local.transcripts"
-    ipcTarget: "local.transcripts"
+    moduleName: "io.github.davefano.transcripts"
+    ipcTarget: "io.github.davefano.transcripts"
     readonly property string helper: decodeURIComponent(Qt.resolvedUrl("transcripts.py").toString().replace(/^file:\/\//, ""))
     property var entries: []
     property var selected: null

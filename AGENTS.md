@@ -58,10 +58,13 @@ hooks need equivalent integration. The installer does not configure speech tools
 - `Transcripts.qml`: Quickshell panel and bar button. Calls the Python helper with
   argument arrays, reads JSON, and refreshes history while the panel is open.
   Provides search, full-text viewing, copy, pause, Trash, and manual clipboard save.
-- `manifest.json`: Omarchy bar-widget registration for `local.transcripts`.
-- `install.sh`: Validates and copies the plugin, creates the CLI launcher, rescans
-  plugins, and enables the bar entry before the audio icon. Refuses to overwrite
-  an unrelated launcher.
+- `manifest.json`: Omarchy bar-widget registration for `io.github.davefano.transcripts`.
+- `install.sh`: Copies a source installation or sets up the CLI in an installed
+  checkout with `--cli-only`. `--migrate` explicitly switches a legacy launcher
+  and disables `local.transcripts`, preserving history and legacy files. Refuses
+  unrelated launchers and external writes into Git-managed installations.
+- `test_install.py`: Isolated filesystem tests for installation, migration, repeat
+  setup, launcher ownership, and Git checkout preservation.
 - `test_transcripts.py`: Tests ingestion, exact passthrough, storage failure,
   pause, Trash/restore/export, concurrent producers, pagination, permissions,
   and literal text handling.
@@ -113,7 +116,7 @@ existing history when changing storage or installation behavior.
 For changes to collector behavior, run the existing isolated test suite:
 
 ```bash
-python3 -m unittest -v test_transcripts.py
+python3 -m unittest -v test_transcripts.py test_install.py
 ```
 
 For plugin changes, validate against the installed Omarchy tooling when available:
@@ -129,8 +132,9 @@ Run `bash test_panel.sh` in an active graphical session for mouse, keyboard,
 late refresh, literal search, and last-page regression coverage.
 
 When installation is part of the requested work, run `bash install.sh`. This
-updates the user's live plugin and bar. The installed copy lives at
-`${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins/local.transcripts/`, with a
+updates the user's live plugin and bar. Use `--migrate` for the legacy ID.
+Marketplace installs use `omarchy plugin add` followed by `install.sh --cli-only`. The installed copy lives at
+`${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins/io.github.davefano.transcripts/`, with a
 launcher at `~/.local/bin/omarchy-transcripts`. Source edits do not update that
 copy automatically. Removing collection requires disconnecting the tool's hook;
 disabling the panel alone leaves ingestion active and saved history intact.
