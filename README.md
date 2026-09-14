@@ -198,6 +198,9 @@ History can contain sensitive text; choose a private location for exports.
 
 ## Development
 
+See [Development reference](DEVELOPMENT.md) for the code map, design constraints,
+and marketplace packaging guidance.
+
 ```bash
 python3 -m unittest -v test_transcripts.py test_install.py
 omarchy plugin validate .

@@ -1,4 +1,19 @@
-# Transcripts for Omarchy
+# Developing Transcripts for Omarchy
+
+## Documentation and the installed plugin
+
+Omarchy's GitHub installer clones the repository into the installed plugin
+directory, so repository documentation is shipped alongside the runtime files.
+This reference uses an ordinary documentation filename because marketplace
+[submission review](https://github.com/omacom/omarchy-plugin-marketplace/issues/6834#issuecomment-5661720698)
+rejected the former `AGENTS.md` as an active agent-control channel inside that
+installed scope. Development guidance belongs here; an automatically loaded
+agent instruction file would recreate that review blocker.
+
+Passing automated compatibility checks and receiving a security baseline with
+no findings did not imply maintainer approval. After changing the published
+tree, the submission needs fresh validation and security evidence for the new
+commit before the maintainer can approve it.
 
 ## Purpose and original intent
 
